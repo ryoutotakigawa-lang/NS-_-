@@ -3,7 +3,6 @@ import { STORAGE_KEYS } from './constants';
 import { loadData, saveData } from './utils';
 import ScheduleTab from './components/ScheduleTab';
 import CountdownTab from './components/CountdownTab';
-import LocalizeTab from './components/LocalizeTab';
 import BufferTab from './components/BufferTab';
 import HashtagsTab from './components/HashtagsTab';
 import AnalyticsTab from './components/AnalyticsTab';
@@ -41,7 +40,6 @@ export default function App() {
   const tabs = [
     { id: 'schedule', icon: '📅', label: 'スケジュール' },
     { id: 'countdown', icon: '⏳', label: 'カウントダウン' },
-    { id: 'localize', icon: '🌎', label: 'AI翻訳' },
     { id: 'buffer', icon: '🚀', label: 'Buffer' },
     { id: 'hashtags', icon: '#️⃣', label: 'タグ' },
     { id: 'analytics', icon: '📊', label: '分析' },
@@ -50,9 +48,8 @@ export default function App() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'schedule': return <ScheduleTab posts={posts} setPosts={setPosts} region={region} />;
+      case 'schedule': return <ScheduleTab posts={posts} setPosts={setPosts} region={region} geminiKey={geminiKey} />;
       case 'countdown': return <CountdownTab releaseDate={releaseDate} setReleaseDate={setReleaseDate} />;
-      case 'localize': return <LocalizeTab geminiKey={geminiKey} setGeminiKey={setGeminiKey} />;
       case 'buffer': return <BufferTab posts={posts} bufferCounts={bufferCounts} setBufferCounts={setBufferCounts} />;
       case 'hashtags': return <HashtagsTab customTags={customTags} setCustomTags={setCustomTags} />;
       case 'analytics': return <AnalyticsTab engageMemos={engageMemos} setEngageMemos={setEngageMemos} />;

@@ -12,7 +12,8 @@ export async function generateLocalization(prompt, geminiKey) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { 
           temperature: 0.8, 
-          maxOutputTokens: 1024
+          maxOutputTokens: 1024,
+          responseMimeType: "text/plain"
         }
       })
     }

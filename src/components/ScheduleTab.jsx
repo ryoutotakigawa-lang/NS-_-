@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { CONTENT_TYPES, PLATFORMS, OPTIMAL_TIMES, DAY_NAMES_JA, TIME_SLOTS } from '../constants';
 import { getWeekDates, formatDate, isSameDay, generateId } from '../utils';
+import { generateLocalization } from '../utils/geminiApi';
 
-export default function ScheduleTab({ posts, setPosts, region }) {
+const MAX_CHARS = { instagram: 2200, tiktok: 2200, x: 280, youtube: 10000 };
+
+export default function ScheduleTab({ posts, setPosts, region, geminiKey }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   const today = new Date();
   const baseDate = new Date(today);
@@ -42,7 +47,45 @@ export default function ScheduleTab({ posts, setPosts, region }) {
     }
     setShowModal(false);
     setEditingPost(null);
+    setAiError('');
     showToastMsg('✅ 保存しました');
+  };
+
+  const handleLocalize = async () => {
+    if (!editingPost || !editingPost.caption) return;
+    if (!geminiKey) { setAiError('Gemini APIキーを設定画面で入力してください'); return; }
+    
+    setLoading(true);
+    setAiError('');
+    
+    const prompt = `You are an expert social media marketer for the US/UK music market.
+
+Task: Localize the following Japanese social media caption into natural, engaging English optimized for ${editingPost.platform}.
+
+Requirements:
+1. Adapt the tone and style for Western ${editingPost.platform} audiences
+2. Use culturally relevant expressions and trending language
+3. Optimize for the ${editingPost.platform} algorithm (appropriate length, hooks, etc.)
+4. Include 5-8 relevant English hashtags popular in the Western music scene
+5. Keep emojis strategic and platform-appropriate
+6. Add a compelling hook/first line to stop scrolling
+
+Japanese caption:
+${editingPost.caption}
+
+Please provide:
+1. **Localized Caption** (ready to post)
+2. **Suggested Hashtags** (separated by spaces)
+3. **Platform Tips** (1-2 brief optimization notes for ${editingPost.platform})`;
+
+    try {
+      const text = await generateLocalization(prompt, geminiKey);
+      setEditingPost({ ...editingPost, caption: editingPost.caption + '\n\n---\n\n' + text });
+    } catch (err) {
+      setAiError(err.message || 'APIリクエストに失敗しました');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = () => {
@@ -145,9 +188,9 @@ export default function ScheduleTab({ posts, setPosts, region }) {
       </div>
 
       {showModal && editingPost && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowModal(false); setAiError(''); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+            <button className="modal-close" onClick={() => { setShowModal(false); setAiError(''); }}>✕</button>
             <h3 style={{fontSize:'1.1rem',fontWeight:700,marginBottom:20}}>
               {posts.find(p => p.id === editingPost.id) ? '📝 投稿を編集' : '➕ 新しい投稿'}
             </h3>
@@ -184,10 +227,24 @@ export default function ScheduleTab({ posts, setPosts, region }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">キャプション / メモ</label>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 4}}>
+                <label className="form-label" style={{marginBottom: 0}}>キャプション / メモ</label>
+                {editingPost.platform && (
+                  <span style={{fontSize:'0.75rem', color: (editingPost.caption?.length || 0) > MAX_CHARS[editingPost.platform] ? 'var(--accent-red)' : 'var(--text-muted)'}}>
+                    {editingPost.caption?.length || 0} / {MAX_CHARS[editingPost.platform]}
+                  </span>
+                )}
+              </div>
               <textarea className="textarea" value={editingPost.caption || ''}
                 onChange={e => setEditingPost({...editingPost, caption: e.target.value})}
-                placeholder="投稿内容やメモを入力..." rows={3} />
+                placeholder="投稿内容やメモを入力..." rows={5} />
+              
+              <div style={{marginTop:8}}>
+                  <button className="btn btn-sm btn-secondary" onClick={handleLocalize} disabled={loading} style={{width:'100%', opacity: loading ? 0.7 : 1}}>
+                    {loading ? <span className="animate-pulse">🔄 変換中...</span> : '🚀 英語に最適化 (Gemini AI)'}
+                  </button>
+                  {aiError && <div style={{fontSize:'0.75rem', color:'var(--accent-red)', marginTop:4}}>{aiError}</div>}
+              </div>
             </div>
             <div style={{display:'flex',gap:8,marginTop:20}}>
               <button className="btn btn-primary" style={{flex:1}} onClick={handleSave}>💾 保存</button>
