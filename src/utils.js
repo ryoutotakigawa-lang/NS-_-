@@ -9,7 +9,7 @@ export function saveData(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn('localStorage save failed:', e);
+    // ignore
   }
 }
 
